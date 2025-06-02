@@ -5,3 +5,4 @@ venv/
 .DS_Store
 .history
 gcp_key.json
+*.pth

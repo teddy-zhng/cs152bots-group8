@@ -36,7 +36,7 @@ MODERATE_KEYWORD = "moderate"
 
 NUM_QUEUE_LEVELS = 3
 
-CLASSIFIER_URL = "placeholder/classify"
+CLASSIFIER_URL = "placeholdersomegcpurletcetc/classify"
 GCP_SERVICE_ACCOUNT_TOKEN_FILE = "gcp_key.json" # key that allows our discord bot to run the classifier
 credentials = service_account.IDTokenCredentials.from_service_account_file(
     GCP_SERVICE_ACCOUNT_TOKEN_FILE,
