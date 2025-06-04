@@ -277,26 +277,45 @@ class ModBot(discord.Client):
             self.conversationState = ConversationState.NOFLOW
 
 
-
     async def handle_channel_message(self, message):
         if not message.channel.name in [f'group-{self.group_num}', f'group-{self.group_num}-mod']:
             return
 
         # moderator commands
-        #TODO decompose into another function
         if message.channel.name == f'group-{self.group_num}-mod':
-            if message.content == "report summary":
-                await message.channel.send(self.report_queue.summary())
-            elif message.content.startswith("report display"):
-                if "showcontent" in message.content:
-                    await message.channel.send(self.report_queue.display(showContent=True))
-                else:
-                    await message.channel.send(self.report_queue.display())
-            return
+            self.handle_mod_tools(message)
 
-        # TODO decompose into another funciton
+        else:
+            self.auto_review(message) # classifies and then sends to llm for mod
+    
+    async def handle_mod_tools(self, message):
+        if message.content == "report summary":
+            await message.channel.send(self.report_queue.summary())
+        elif message.content.startswith("report display"):
+            if "showcontent" in message.content:
+                await message.channel.send(self.report_queue.display(showContent=True))
+            else:
+                await message.channel.send(self.report_queue.display())
+        return
+    
+    async def auto_review(self, message):
         # ----- teddy: for milestone 3, send every msg to classifier/llm -----------------------
-        mod_channel = self.mod_channels[message.guild.id]      
+        mod_channel = self.mod_channels[message.guild.id]
+        classification, confidence = self.classify_msg(message, mod_channel)
+        if classification == -1 or confidence == -1:
+            return # nothing happens on error
+        
+        # classified, now proceed with LLM filling out the report info
+        #TODO convert pseudocode to code
+        # if the classification is harmful, 
+        # send to llm 
+        # llm will send back certain fields (check llm code for which fields)
+        # genearte a report object with those fields
+        # add report to queue (decomp with our other reporting for simplicity if not arleady?)
+        # send a messsage to mod channel the same way a report did, 
+        
+    
+    async def classify_msg(self, message, mod_channel):
         credentials.refresh(Request())
         token = credentials.token
         headers = {
@@ -316,13 +335,14 @@ class ModBot(discord.Client):
             )
 
             await mod_channel.send("TODO: craft a report using LLM")
+            return classification, confidence
 
         except Exception as e:
             await mod_channel.send("Error classifying message: " + message.content)
             print(e)
+            return -1, -1
 
-        return
-    
+
     def eval_text(self, message):
         ''''
         TODO: Once you know how you want to evaluate messages in your channel, 
