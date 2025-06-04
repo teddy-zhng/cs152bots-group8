@@ -1,63 +1,103 @@
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
 import pandas as pd
-from pytorch_pretrained_bert import BertTokenizer, BertConfig
-from model import BertForSequenceClassification
+import numpy as np
+from transformers import BertTokenizer, BertConfig
+from transformers.modeling_outputs import SequenceClassifierOutput
+from transformers import BertPreTrainedModel, BertModel
 from tqdm import tqdm
+import os
+import safetensors.torch as st
 
-# Load tokenizer and model config
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-config = BertConfig(vocab_size_or_config_json_file=32000, hidden_size=768,
-                    num_hidden_layers=12, num_attention_heads=12, intermediate_size=3072)
+# Model definition (copied from main.py)
+class SmallerBERTClassifier(BertPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.bert = BertModel(config)
+        self.dropout = nn.Dropout(0.4)
+        self.classifier = nn.Sequential(
+            nn.Linear(config.hidden_size, 128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(128, config.num_labels)
+        )
 
-# Load model and weights
-model = BertForSequenceClassification(num_labels=2)
-model.load_state_dict(torch.load("bert_model_finetuned.pth", map_location=torch.device('cpu')))
+    def forward(self, input_ids=None, attention_mask=None, token_type_ids=None, labels=None):
+        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+        pooled = self.dropout(outputs.pooler_output)
+        logits = self.classifier(pooled)
+        return SequenceClassifierOutput(
+            loss=None,
+            logits=logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions
+        )
+
+# Paths
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "saved_liar_bert_model")
+WEIGHTS_PATH = os.path.join(MODEL_DIR, "model.safetensors")
+TSV_PATH = "../../LIAR-PLUS-master/dataset/tsv/val2.tsv"
+OUTPUT_CSV = "val2_preds.csv"
+
+# Load tokenizer and model
+tokenizer = BertTokenizer.from_pretrained(MODEL_DIR)
+config = BertConfig.from_pretrained(MODEL_DIR)
+model = SmallerBERTClassifier(config)
+
+# Load weights from safetensors
+state_dict = st.load_file(WEIGHTS_PATH)
+model.load_state_dict(state_dict)
 model.eval()
 
-def preprocess(text, max_len):
-    if not isinstance(text, str):
-        text = "" if pd.isna(text) else str(text)
-    tokens = tokenizer.tokenize(text if text else "None")
-    tokens = tokens[:max_len]
-    token_ids = tokenizer.convert_tokens_to_ids(tokens)
-    padded = token_ids + [0] * (max_len - len(token_ids))
-    return torch.tensor(padded).unsqueeze(0)  # shape: (1, max_len)
-
 # Load dataset
-df = pd.read_csv("../../LIAR-PLUS-master/dataset/tsv/train2.tsv", sep='\t')
-
+df = pd.read_csv(TSV_PATH, sep='\t', header=None)
 df.columns = [f"col{i}" for i in range(len(df.columns))]
+# If justification is the last column, rename for clarity
 df = df.rename(columns={"col3": "statement", "col15": "justification"})
-df = df.iloc[:1000].reset_index(drop=True)
 
 predictions = []
 confidences = []
 
 for idx, row in tqdm(df.iterrows(), total=len(df)):
-    if idx >= 1000:
+    if idx >= 1500:
         break
     statement = row.get("statement", "")
-    # justification = row.get("justification", "")
-    justification = ""
-    metadata = ""
-    credit = 0.5
+    justification = row.get("justification", "")
 
-    input_ids1 = preprocess(statement, max_len=64)
-    input_ids2 = preprocess(justification, max_len=256)
-    input_ids3 = preprocess(metadata, max_len=32)
-    credit_tensor = torch.tensor([credit] * 2304).unsqueeze(0)  # shape (1, 2304)
+    # Ensure both are strings and handle NaN
+    if not isinstance(statement, str):
+        statement = "" if pd.isna(statement) else str(statement)
+    if not isinstance(justification, str):
+        justification = "" if pd.isna(justification) else str(justification)
+
+    # Tokenize as in main.py
+    inputs = tokenizer(
+        statement,
+        justification,
+        return_tensors="pt",
+        truncation=True,
+        padding=True,
+        max_length=256
+    )
 
     with torch.no_grad():
-        logits = model(input_ids1, input_ids2, input_ids3, credit_tensor)
-        probs = F.softmax(logits, dim=1)
-        confidence = probs[0][1].item()
-        prediction = "misinfo" if confidence > 0.5 else "not misinfo"
+        outputs = model(**inputs)
+        probs = torch.softmax(outputs.logits, dim=1).squeeze()
+        # Lower the threshold for "misinfo" to prioritize recall
+        threshold = 0.3  # You can adjust this value as needed
+        if probs[1] >= threshold:
+            prediction = 1
+        else:
+            prediction = 0
+        confidence = probs[prediction].item()
 
-    predictions.append(prediction)
+    predictions.append("misinfo" if prediction == 1 else "not misinfo")
     confidences.append(round(confidence, 4))
+
+df = df.iloc[:1500].copy()
 
 df["prediction"] = predictions
 df["confidence_score"] = confidences
 
-df.to_csv("train2_preds_wout_justification.csv", index=False)
+df.to_csv(OUTPUT_CSV, index=False)
+print(f"Saved predictions to {OUTPUT_CSV}")

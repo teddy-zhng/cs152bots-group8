@@ -8,6 +8,7 @@ import os
 from google.cloud import storage
 import safetensors.torch as st
 import io
+import numpy as np
 
 
 app = Flask(__name__)
@@ -64,6 +65,12 @@ def load_weights_from_gcs(bucket_name, blob_name):
 load_weights_from_gcs("pol-disinfo-classifier", "model.safetensors")
 model.eval()
 
+def transform(confidence, offset=-0.34):
+    transformed = confidence ** (1/8)
+    min_val, max_val = 0.01, 0.75  # adjust if needed based on your data
+    scaled = (transformed - min_val) / (max_val - min_val)
+    return np.clip(scaled + offset, 0, 1)
+
 @app.route("/classify", methods=["POST"])
 def classify():
     data = request.json
@@ -82,6 +89,7 @@ def classify():
         probs = torch.softmax(outputs.logits, dim=1).squeeze()
         prediction = torch.argmax(probs).item()
         confidence = probs[prediction].item()
+        # confidence = transform(confidence)
 
     return jsonify({
         "classification": "Misinformation" if prediction == 1 else "Not Misinformation",
