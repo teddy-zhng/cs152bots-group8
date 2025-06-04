@@ -7,3 +7,5 @@ venv/
 gcp_key.json
 *.pth
 *.safetensors
+tokens.json
+__pycache__
