@@ -5,6 +5,10 @@ from transformers import BertPreTrainedModel, BertModel
 import torch.nn as nn
 import torch
 import os
+from google.cloud import storage
+import safetensors.torch as st
+import io
+
 
 app = Flask(__name__)
 
@@ -39,7 +43,25 @@ MODEL_DIR = os.path.join(os.path.dirname(__file__), "saved_liar_bert_model")
 # Load tokenizer and model from that directory
 tokenizer = BertTokenizer.from_pretrained(MODEL_DIR)
 config = BertConfig.from_pretrained(MODEL_DIR)
-model = SmallerBERTClassifier.from_pretrained(MODEL_DIR, config=config)
+model = SmallerBERTClassifier(config)
+
+# ✅ Load weights from Cloud Storage
+def load_weights_from_gcs(bucket_name, blob_name):
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    # 👇 Get raw bytes instead of using BytesIO
+    weight_bytes = blob.download_as_bytes()
+
+    # ✅ Load weights directly from bytes
+    state_dict = st.load(weight_bytes)
+
+    model.load_state_dict(state_dict)
+    print("✅ Model weights loaded from GCS")
+
+# 👇 Call this once, during init
+load_weights_from_gcs("pol-disinfo-classifier", "model.safetensors")
 model.eval()
 
 @app.route("/classify", methods=["POST"])
@@ -67,4 +89,4 @@ def classify():
     })
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

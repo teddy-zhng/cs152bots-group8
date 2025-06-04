@@ -36,7 +36,7 @@ MODERATE_KEYWORD = "moderate"
 
 NUM_QUEUE_LEVELS = 3
 
-CLASSIFIER_URL = "placeholdersomegcpurletcetc/classify"
+CLASSIFIER_URL = "https://discord-classifier-432480940956.us-central1.run.app/classify"
 GCP_SERVICE_ACCOUNT_TOKEN_FILE = "gcp_key.json" # key that allows our discord bot to run the classifier
 credentials = service_account.IDTokenCredentials.from_service_account_file(
     GCP_SERVICE_ACCOUNT_TOKEN_FILE,
@@ -276,11 +276,14 @@ class ModBot(discord.Client):
             self.moderations.pop(author_id, None)
             self.conversationState = ConversationState.NOFLOW
 
+
+
     async def handle_channel_message(self, message):
         if not message.channel.name in [f'group-{self.group_num}', f'group-{self.group_num}-mod']:
             return
 
         # moderator commands
+        #TODO decompose into another function
         if message.channel.name == f'group-{self.group_num}-mod':
             if message.content == "report summary":
                 await message.channel.send(self.report_queue.summary())
@@ -289,32 +292,34 @@ class ModBot(discord.Client):
                     await message.channel.send(self.report_queue.display(showContent=True))
                 else:
                     await message.channel.send(self.report_queue.display())
+            return
 
-
+        # TODO decompose into another funciton
         # ----- teddy: for milestone 3, send every msg to classifier/llm -----------------------
-        # TODO figure out api call for our classifier (in gcp) and send it and wait for a response
-        # TODO uncomment and edit this code below
-        # credentials.refresh(Request())
-        # token = credentials.token
-        # headers = {
-        #     "Authorization": f"Bearer {token}"
-        # }
-        # payload = {"message": message.content}
-        # try:
-        #     response = requests.post(CLASSIFIER_URL, headers=headers, json=payload)
-        #     result = response.json()
+        mod_channel = self.mod_channels[message.guild.id]      
+        credentials.refresh(Request())
+        token = credentials.token
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+        payload = {"message": message.content}
+        try:
+            response = requests.post(CLASSIFIER_URL, headers=headers, json=payload)
+            result = response.json()
 
-        #     classification = result.get("classification")
-        #     confidence = result.get("confidence_score")
+            classification = result.get("classification")
+            confidence = result.get("confidence_score")
 
-        #     TODO replace this line with sending to LLM to fill out report info
-        #     await message.channel.send(
-        #         f"Classification: {classification}, Confidence: {confidence:.2f}"
-        #     )
+            # TODO replace this line with sending to LLM to fill out report info
+            await mod_channel.send(
+                f"Classification: {classification}, Confidence: {confidence:.2f} for message:\n```\n" + message.content + "\n```\nposted by user " + str(message.author)
+            )
 
-        # except Exception as e:
-        #     await message.channel.send("Error classifying message.")
-        #     print(e)
+            await mod_channel.send("TODO: craft a report using LLM")
+
+        except Exception as e:
+            await mod_channel.send("Error classifying message: " + message.content)
+            print(e)
 
         return
     

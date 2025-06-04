@@ -1,3 +1,14 @@
-Flask
 joblib
 scikit-learn  
+flask
+gunicorn
+safetensors
+transformers
+torch
+sentencepiece
+protobuf
+requests
+google-cloud-storage
+google-auth
+google-auth-oauthlib
+google-auth-httplib2

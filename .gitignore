@@ -6,3 +6,4 @@ venv/
 .history
 gcp_key.json
 *.pth
+*.safetensors
