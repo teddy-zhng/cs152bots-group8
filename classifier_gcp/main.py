@@ -65,12 +65,6 @@ def load_weights_from_gcs(bucket_name, blob_name):
 load_weights_from_gcs("pol-disinfo-classifier", "model.safetensors")
 model.eval()
 
-def transform(confidence, offset=-0.34):
-    transformed = confidence ** (1/8)
-    min_val, max_val = 0.01, 0.75  # adjust if needed based on your data
-    scaled = (transformed - min_val) / (max_val - min_val)
-    return np.clip(scaled + offset, 0, 1)
-
 @app.route("/classify", methods=["POST"])
 def classify():
     data = request.json
@@ -87,9 +81,14 @@ def classify():
     with torch.no_grad():
         outputs = model(**inputs)
         probs = torch.softmax(outputs.logits, dim=1).squeeze()
-        prediction = torch.argmax(probs).item()
+        # Lower the threshold for "misinfo" to prioritize recall
+        threshold = 0.5  # adjust this value as needed
+        if probs[1] >= threshold:
+            prediction = 1
+        else:
+            prediction = 0
         confidence = probs[prediction].item()
-        # confidence = transform(confidence)
+        misinfo_prob = probs[1].item() # equals confidence if prediction == 1, otherwise equals 1 - confidence
 
     return jsonify({
         "classification": "Misinformation" if prediction == 1 else "Not Misinformation",

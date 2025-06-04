@@ -57,6 +57,8 @@ df = df.rename(columns={"col3": "statement", "col15": "justification"})
 
 predictions = []
 confidences = []
+misinfo_probs = []
+not_misinfo_probs = []
 
 for idx, row in tqdm(df.iterrows(), total=len(df)):
     if idx >= 1500:
@@ -84,20 +86,23 @@ for idx, row in tqdm(df.iterrows(), total=len(df)):
         outputs = model(**inputs)
         probs = torch.softmax(outputs.logits, dim=1).squeeze()
         # Lower the threshold for "misinfo" to prioritize recall
-        threshold = 0.3  # You can adjust this value as needed
+        threshold = 0.5  # adjust this value as needed
         if probs[1] >= threshold:
             prediction = 1
         else:
             prediction = 0
         confidence = probs[prediction].item()
+        misinfo_prob = probs[1].item() # equals confidence if prediction == 1 otherwise equals 1 - confidence
 
     predictions.append("misinfo" if prediction == 1 else "not misinfo")
     confidences.append(round(confidence, 4))
+    misinfo_probs.append(round(misinfo_prob, 4))
 
 df = df.iloc[:1500].copy()
 
 df["prediction"] = predictions
 df["confidence_score"] = confidences
+df["misinfo_prob"] = misinfo_probs
 
 df.to_csv(OUTPUT_CSV, index=False)
 print(f"Saved predictions to {OUTPUT_CSV}")
