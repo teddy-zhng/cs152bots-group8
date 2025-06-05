@@ -13,6 +13,7 @@ from report import Report
 from report_queue import SubmittedReport, PriorityReportQueue
 import pdb
 from moderate import ModeratorReview
+from LLM import LLM_reports as llm
 
 # Set up logging to the console
 logger = logging.getLogger('discord')
@@ -313,6 +314,20 @@ class ModBot(discord.Client):
         # genearte a report object with those fields
         # add report to queue (decomp with our other reporting for simplicity if not arleady?)
         # send a messsage to mod channel the same way a report did, 
+        if classification == "Misinformation":
+            report_details = {
+                'message_content': message.content,
+                'classifier_label': classification,
+                'confidence_score': confidence,
+
+                # other fieds to be filled out by the LLM:
+                # 'report_type' : str,
+                # 'misinfo_type' : str,
+                # 'misinfo_subtype': str,
+                # 'imminent' : str,
+                # 'LLM_recommendation' : str
+            }
+            report_details = llm.LLM_report()
         
     
     async def classify_msg(self, message, mod_channel):
@@ -329,12 +344,10 @@ class ModBot(discord.Client):
             classification = result.get("classification")
             confidence = result.get("confidence_score")
 
-            # TODO replace this line with sending to LLM to fill out report info
-            await mod_channel.send(
-                f"Classification: {classification}, Confidence: {confidence:.2f} for message:\n```\n" + message.content + "\n```\nposted by user " + str(message.author)
-            )
-
-            await mod_channel.send("TODO: craft a report using LLM")
+            # lets not spam the mod channel, this can be included in the report itself later if we want to add that
+            # await mod_channel.send(
+            #     f"Classification: {classification}, Confidence: {confidence:.2f} for message:\n```\n" + message.content + "\n```\nposted by user " + str(message.author)
+            # )
             return classification, confidence
 
         except Exception as e:

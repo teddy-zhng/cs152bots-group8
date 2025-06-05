@@ -88,7 +88,6 @@ def classify():
         else:
             prediction = 0
         confidence = probs[prediction].item()
-        misinfo_prob = probs[1].item() # equals confidence if prediction == 1, otherwise equals 1 - confidence
 
     return jsonify({
         "classification": "Misinformation" if prediction == 1 else "Not Misinformation",
