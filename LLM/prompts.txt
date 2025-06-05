@@ -1,4 +1,0 @@
-// Classifier 
-
-
-- Set test data to test at each func implementation

@@ -1,12 +1,14 @@
 from google import genai
-from google.genai import types
 import re
+import os
+import time
+from openai import OpenAI
 
 # Load API key from a text file
 try:
     with open("api_key.txt", "r") as f:
         api_key = f.read().strip()
-    client = genai.Client(api_key=api_key)
+    os.environ['OPENAI_API_KEY'] = api_key
 except FileNotFoundError:
     print("Error: API key file not found. Create 'api_key.txt' with your API key.")
     exit(1)
@@ -14,26 +16,27 @@ except Exception as e:
     print(f"Error loading API key: {e}")
     exit(1)
 
+client = OpenAI()
 
-def call_gemini(sys_instruction, content):
-    try : 
-        response = client.models.generate_content(
-            model= "gemini-2.0-flash",
-            config=types.GenerateContentConfig(
-            system_instruction= sys_instruction),
-            contents= content
-        )
-
-        # print(f"LLM output is: {response.text}")
-        return response.text
-    
-    except Exception as e :
-        print(f"Error connecting to LLM: {e}")
-        return None
-
-
-
-
+def call_gpt(sys_instruction, content, retries=3, wait_time=60):
+    attempt = 0
+    while attempt < retries:
+        try:
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": sys_instruction},
+                    {"role": "user", "content": content}
+                ]
+            )
+            return completion.choices[0].message.content
+        except Exception as e:
+            attempt += 1
+            print(f"Error occurred: {e}. Attempt {attempt} of {retries}. Waiting for {wait_time} seconds before retrying.")
+            time.sleep(wait_time)
+            if attempt == retries:
+                print("Max retries reached. Skipping this request.")
+                return None
 
 #  Function to invoke report generation
 def LLM_report(message_content, classifier_label, confidence_score,metadata, reporter_info = 'Classifier'):
@@ -181,7 +184,7 @@ def call_report_type(message_content, classifier_label, confidence_score,metadat
     """
 
     
-    return  call_gemini (system_instruction, content)
+    return call_gpt(system_instruction, content)
 
 def call_misinfo_type (message_content):
     # Step 2: Type of Misinformation
@@ -202,7 +205,7 @@ def call_misinfo_type (message_content):
     Respond with ONLY the number (1-3).
                 """
     
-    return call_gemini(system_instruction, content)
+    return call_gpt(system_instruction, content)
 
 
 
@@ -226,7 +229,7 @@ def call_pol_misinfo_subtype(message_content):
     Respond with ONLY the number (1-4).
               """
 
-    return call_gemini(system_instruction, content)
+    return call_gpt(system_instruction, content)
 
 
 
@@ -250,7 +253,7 @@ def call_health_misinfo_subtype(message_content):
     Respond with ONLY the number (1-4).
                """
     
-    return call_gemini(system_instruction,content)
+    return call_gpt(system_instruction,content)
 
 
 def call_imminent(message_content):
@@ -273,7 +276,7 @@ def call_imminent(message_content):
     Respond with ONLY the number (1-4).
               """
     
-    return call_gemini(system_instruction, content)
+    return call_gpt(system_instruction, content)
 
 
 
@@ -301,7 +304,7 @@ def call_recommedation(message_content, harm, score):
         justify your recommendation. Adhere strictly to the word limit of 80. 
               """
 
-    return call_gemini(system_instruction,content)
+    return call_gpt(system_instruction,content)
 # Recommendation based on filter, imminent harm, 
 
 
