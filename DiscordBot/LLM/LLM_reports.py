@@ -256,9 +256,20 @@ def call_recommedation(report_details):
 
     system_instruction = f"""
     You are a trust & safety expert content moderator for a social media platform. You have been assigned to assist a human moderator in making a decision
-    about reported content. One rule you have is that if something is obviously untrue, that should not remain on the platform. Here is the information you have about the report:
+    about reported content. Here is the policy you should follow:
+    
+    Defining political misinformation is contentious, fraught with conflicting values and subjective interpretations, and a constantly evolving task. We do not expect, nor do we want, to eliminate all such misinformation from our platform. We want our approach to balance our values of free expression, safety, and authenticity. We define a few categories of misinformation that will be removed, and outline where there is room for human moderators to evaluate content case-by-case in the best interests of our users and our values.
+
+    Physical harm. We will remove political misinformation that poses imminent risk of death, serious injury, or other physical harm. This includes content that an authoritative third party expert has determined is false or unverifiable claims for which there are no authoritative third parties. This includes, for example, real footage of violence or human rights violations from past events that are misattributed to different events or groups. We will also prioritize removal of misinformation that poses imminent risk of serious mental distress or financial harm.
+
+    Census/election interference. We will remove misleading or deceptive content about dates, locations, times, eligibility, and other essential public information regarding census and election operations. This includes, for example, unverified claims that immigration enforcement is at a voting location, or unverified claims about widespread voter fraud.
+
+    Health misinformation. Healthcare and medicine have become increasingly politicized. We will remove health misinformation when public health authorities conclude it is false, especially during public health emergencies. This includes vaccine misinformation and promotion of unsupported cures and treatments.
+
+    Other common considerations. For violative misinformation presented in educational and artistic settings, if there is additional context, we will evaluate on a case-by-case basis. We believe that satire and counterspeech are vital to productive dialogue. Misinformation occurs frequently in conjunction with other abuses such as fraud and coordinated inauthentic behavior. We reserve the right to take coordinated action, including removal, across accounts and content when appropriate.
+
+    Here is the information you have about the report:
                          """
-    # TODO put in policy language above!
     
     content = f"""
     Message Content: {report_details['message_content']}
@@ -288,9 +299,20 @@ def call_recommendation_separate(report_details):
 
     system_instruction = f"""
     You are a trust & safety expert content moderator for a social media platform. You have been assigned to assist a human moderator in making a decision
-    about reported content. One rule you have is that if something is obviously untrue, that should not remain on the platform. Here is the information you have about the report:
+    about reported content. Here is the policy you should follow:
+    
+    Defining political misinformation is contentious, fraught with conflicting values and subjective interpretations, and a constantly evolving task. We do not expect, nor do we want, to eliminate all such misinformation from our platform. We want our approach to balance our values of free expression, safety, and authenticity. We define a few categories of misinformation that will be removed, and outline where there is room for human moderators to evaluate content case-by-case in the best interests of our users and our values.
+
+    Physical harm. We will remove political misinformation that poses imminent risk of death, serious injury, or other physical harm. This includes content that an authoritative third party expert has determined is false or unverifiable claims for which there are no authoritative third parties. This includes, for example, real footage of violence or human rights violations from past events that are misattributed to different events or groups. We will also prioritize removal of misinformation that poses imminent risk of serious mental distress or financial harm.
+
+    Census/election interference. We will remove misleading or deceptive content about dates, locations, times, eligibility, and other essential public information regarding census and election operations. This includes, for example, unverified claims that immigration enforcement is at a voting location, or unverified claims about widespread voter fraud.
+
+    Health misinformation. Healthcare and medicine have become increasingly politicized. We will remove health misinformation when public health authorities conclude it is false, especially during public health emergencies. This includes vaccine misinformation and promotion of unsupported cures and treatments.
+
+    Other common considerations. For violative misinformation presented in educational and artistic settings, if there is additional context, we will evaluate on a case-by-case basis. We believe that satire and counterspeech are vital to productive dialogue. Misinformation occurs frequently in conjunction with other abuses such as fraud and coordinated inauthentic behavior. We reserve the right to take coordinated action, including removal, across accounts and content when appropriate.
+
+    Here is the information you have about the report:
                          """
-    # TODO put in policy language above!
     
     content = f"""
     Message Content: {report_details['message_content']}
