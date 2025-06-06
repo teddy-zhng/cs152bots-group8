@@ -127,25 +127,28 @@ def LLM_report(report_details):
         report_details['misinfo_subtype'] = 'Other'
 
 
-        # Initiate userflow for Harmful content
-        imminent_response = call_imminent(report_details)
-        imminent_response = imminent_response[0]
+    # Initiate userflow for Harmful content
+    imminent_response = call_imminent(report_details)
+    imminent_response = imminent_response[0]
 
-        #================== Decision logic for Imminent Harm Response ==================
+    #================== Decision logic for Imminent Harm Response ==================
 
-        if imminent_response == "2":
-            report_details['imminent'] = 'physical'
+    if imminent_response == "1":
+        report_details['imminent'] = 'No'
 
-        elif imminent_response == "3":
-            report_details['imminent'] = 'mental'
-        
-        elif imminent_response == "4":
-            report_details['imminent'] = 'financial or property'
+    elif imminent_response == "2":
+        report_details['imminent'] = 'physical'
 
-        """
-        Discussion : Not sure if to factor in the filter flag since this is detected automatically and  
-        not specific to a particular user's feed
-        """
+    elif imminent_response == "3":
+        report_details['imminent'] = 'mental'
+    
+    elif imminent_response == "4":
+        report_details['imminent'] = 'financial or property'
+
+    """
+    Discussion : Not sure if to factor in the filter flag since this is detected automatically and  
+    not specific to a particular user's feed
+    """
         
     # Initiate userflow for LLM Recommendation 
     recommendation_response = call_recommedation(report_details)
