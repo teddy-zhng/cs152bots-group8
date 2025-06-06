@@ -1,7 +1,7 @@
 from collections import deque
 
 class SubmittedReport:
-    def __init__(self, id, reported_message, author, content, report_type, misinfo_type, misinfo_subtype, imminent, message_guild_id, priority):
+    def __init__(self, id, reported_message, author, content, report_type, misinfo_type, misinfo_subtype, imminent, message_guild_id, priority, llm_recommendation=None):
         self.author = author
         self.id = id
         self.reported_message = reported_message
@@ -12,6 +12,10 @@ class SubmittedReport:
         self.imminent = imminent
         self.message_guild_id = message_guild_id
         self.priority = priority
+        if llm_recommendation:
+            self.llm_recommendation = llm_recommendation
+        else:
+            self.llm_recommendation = None
 
 class PriorityReportQueue:
     def __init__(self, num_levels, queue_names):

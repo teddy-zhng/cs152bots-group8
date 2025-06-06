@@ -23,6 +23,7 @@ class ModeratorReview:
         self.misinfo_subtype = None
         self.imminent = None
         self.filter = False
+        self.llm_recommendation = None
 
         self.reported_author_metadata = None
         self.reported_content_metadata = None
@@ -52,6 +53,8 @@ class ModeratorReview:
                     reply += "User requested filtering/blocking.\n"
                 reply += "Author metadata: " + str(self.reported_author_metadata) + "\n"
                 reply += "Content metadata: " + str(self.reported_content_metadata) + "\n\n"
+                if self.llm_recommendation:
+                    reply += "The Auto-Mod bot made this recommendation: " + self.llm_recommendation + "\n\n"
                 reply += "Type any key to continue."
                 return [reply]
 

@@ -9,7 +9,7 @@ import requests
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from enum import Enum
-from report import Report
+from report import Report, get_priority_static
 from report_queue import SubmittedReport, PriorityReportQueue
 import pdb
 from moderate import ModeratorReview
@@ -51,6 +51,7 @@ class ConversationState(Enum):
     
 
 class ModBot(discord.Client):
+    # INITIALIZATION STAGE
     def __init__(self): 
         intents = discord.Intents.default()
         intents.message_content = True
@@ -82,8 +83,8 @@ class ModBot(discord.Client):
             for channel in guild.text_channels:
                 if channel.name == f'group-{self.group_num}-mod':
                     self.mod_channels[guild.id] = channel
-        
-
+    
+    # ENTRY POINT: ROUTE MESSAGES TO APPROPRIATE HANDLER
     async def on_message(self, message):
         '''
         This function is called whenever a message is sent in a channel that the bot can see (including DMs). 
@@ -99,7 +100,7 @@ class ModBot(discord.Client):
         else:
             await self.handle_dm(message)
 
-
+    # ROUTING FOR DMS
     async def handle_dm(self, message):
         # Handle a help message
         if message.content == Report.HELP_KEYWORD:
@@ -116,6 +117,7 @@ class ModBot(discord.Client):
             self.conversationState = ConversationState.MODERATING
             await self.handle_moderation(message)
 
+    # DMs that were reports
     async def handle_report(self, message):
 
         author_id = message.author.id
@@ -129,7 +131,6 @@ class ModBot(discord.Client):
         responses = await self.reports[author_id].handle_message(message)
 
         ## report.py updates state, and below, we route our response based on that state
-        
 
         if self.reports[author_id].is_awaiting_message():
             for r in responses:
@@ -204,6 +205,8 @@ class ModBot(discord.Client):
                 report_info_msg += "Category: " + str(report_type) + " > " + str(misinfo_type) + " > " + str(misinfo_subtype) + "\n"
                 if imminent:
                     report_info_msg += "URGENT: Imminent " + imminent + " harm reported."
+                
+                # put the report on the queue itself
                 submitted_report = SubmittedReport(id, reported_message, reported_author, reported_content, report_type, misinfo_type, misinfo_subtype, imminent, message_guild_id, priority)
                 self.report_queue.enqueue(submitted_report)
 
@@ -218,6 +221,7 @@ class ModBot(discord.Client):
             # await mod_channel.send(self.code_format(scores))
             #-------------------------------------------------
     
+    # DMs that were moderation requests
     async def handle_moderation(self, message):
 
         author_id = message.author.id
@@ -245,6 +249,17 @@ class ModBot(discord.Client):
             review.reported_content_metadata = f"Msg: \"{next_report.content}\""
             review.message_guild_id = next_report.message_guild_id
             review.reported_message = next_report.reported_message
+            if next_report.llm_recommendation:
+                review.llm_recommendation = next_report.llm_recommendation
+            else:
+                report_details = {
+                    'message_content': next_report.content,
+                    'report_type': next_report.report_type,
+                    'misinfo_type': next_report.misinfo_type,
+                    'misinfo_subtype': next_report.subtype,
+                    'imminent': next_report.imminent,
+                }
+                review.llm_recommendation = llm.call_recommendation_separate(report_details)
             self.moderations[author_id] = review
             preview = self.report_queue.display_one(next_report, showContent=False)
             if preview:
@@ -277,18 +292,19 @@ class ModBot(discord.Client):
             self.moderations.pop(author_id, None)
             self.conversationState = ConversationState.NOFLOW
 
-
+    # ROUTING FOR CHANNEL MESSAGES
     async def handle_channel_message(self, message):
         if not message.channel.name in [f'group-{self.group_num}', f'group-{self.group_num}-mod']:
             return
 
         # moderator commands
         if message.channel.name == f'group-{self.group_num}-mod':
-            self.handle_mod_tools(message)
+            await self.handle_mod_tools(message)
 
         else:
-            self.auto_review(message) # classifies and then sends to llm for mod
+            await self.auto_review(message) # classifies and then sends to llm for mod
     
+    # mod channel messages: tools for moderators 
     async def handle_mod_tools(self, message):
         if message.content == "report summary":
             await message.channel.send(self.report_queue.summary())
@@ -298,23 +314,20 @@ class ModBot(discord.Client):
             else:
                 await message.channel.send(self.report_queue.display())
         return
-    
+
+    # user channel messages: auto-review / flagging process
     async def auto_review(self, message):
         # ----- teddy: for milestone 3, send every msg to classifier/llm -----------------------
         mod_channel = self.mod_channels[message.guild.id]
-        classification, confidence = self.classify_msg(message, mod_channel)
+        classification, confidence = await self.classify_msg(message, mod_channel)
         if classification == -1 or confidence == -1:
             return # nothing happens on error
         
+        print("message classified")
+        
         # classified, now proceed with LLM filling out the report info
-        #TODO convert pseudocode to code
-        # if the classification is harmful, 
-        # send to llm 
-        # llm will send back certain fields (check llm code for which fields)
-        # genearte a report object with those fields
-        # add report to queue (decomp with our other reporting for simplicity if not arleady?)
-        # send a messsage to mod channel the same way a report did, 
         if classification == "Misinformation":
+            print("message classified as misinformation, sending to LLM")
             report_details = {
                 'message_content': message.content,
                 'classifier_label': classification,
@@ -327,9 +340,45 @@ class ModBot(discord.Client):
                 # 'imminent' : str,
                 # 'LLM_recommendation' : str
             }
-            report_details = llm.LLM_report()
+            report_details = llm.LLM_report(report_details) # report function is in LLM/ module
+            print("report details: ", report_details)
+
+            # TODO put into report queue
+            # make a report
+            id = self.report_id_counter
+            self.report_id_counter += 1
+            reported_message = message
+            reported_author = message.author.id 
+            reported_content = message.content
+            report_type = "Misinformation"
+            misinfo_type = report_details['misinfo_type']
+            misinfo_subtype = report_details['misinfo_subtype']
+            imminent = report_details['imminent']
+            message_guild_id = message.guild.id
+            priority = get_priority_static(imminent)
+            llm_recommendation = report_details['LLM_recommendation']
+            
+            # put it in the mod channel
+            mod_channel = self.mod_channels[message_guild_id]
+            # todo are we worried about code injection via author name or content? 
+            report_info_msg = "Report ID: " + str(id) + "\n"
+            report_info_msg += "[Auto-Mod] reported user " + str(reported_author) + "'s message.\n"
+            # report_info_msg += "Here is the message: \n```" + str(reported_content) + "\n```" 
+            report_info_msg += "Category: " + str(report_type) + " > " + str(misinfo_type) + " > " + str(misinfo_subtype) + "\n"
+            if imminent:
+                report_info_msg += "URGENT: Imminent " + imminent + " harm reported."
+            
+            # put the report on the queue itself
+            submitted_report = SubmittedReport(id, reported_message, reported_author, reported_content, report_type, misinfo_type, misinfo_subtype, imminent, message_guild_id, priority, llm_recommendation)
+            self.report_queue.enqueue(submitted_report)
+
+            await mod_channel.send(report_info_msg)
+            print("LLM done, Report created and sent to mod channel")
         
-    
+        else: 
+            print("message classified as not misinformation, no action taken")
+
+    # classifier step of auto-review
     async def classify_msg(self, message, mod_channel):
         credentials.refresh(Request())
         token = credentials.token
@@ -355,24 +404,9 @@ class ModBot(discord.Client):
             print(e)
             return -1, -1
 
+    # LLM step of auto-review is an external function so we dont' have  afunction for it here
 
-    def eval_text(self, message):
-        ''''
-        TODO: Once you know how you want to evaluate messages in your channel, 
-        insert your code here! This will primarily be used in Milestone 3. 
-        '''
-        return message
-
-    
-    def code_format(self, text):
-        ''''
-        TODO: Once you know how you want to show that a message has been 
-        evaluated, insert your code here for formatting the string to be 
-        shown in the mod channel. 
-        '''
-        #teddy: not sure if we need this function
-        return "Evaluated: '" + text+ "'"
-    
+    # don't remmeber what this commented out code was for, will delete barring any foreseeable use
     # def process_response(self, responses):
 
     #     reply = responses["reply"]

@@ -15,6 +15,13 @@ class State(Enum):
 
     REPORT_COMPLETE = auto()
 
+def get_priority_static(imminent):
+        if imminent in ["physical", "mental"]:
+            return 0
+        elif imminent == "financial":
+            return 1
+        else:
+            return 2
 class Report:
     START_KEYWORD = "report"
     CANCEL_KEYWORD = "cancel"
@@ -415,12 +422,8 @@ class Report:
     def get_imminent(self):
         return self.imminent
     def get_priority(self): # defining priorities, can be changed
-        if self.imminent in ["physical", "mental"]:
-            return 0
-        elif self.imminent == "financial":
-            return 1
-        else:
-            return 2
+        return get_priority_static(self.imminent)
+    
     def get_filter(self):
         return self.filter
     def get_reported_message(self):

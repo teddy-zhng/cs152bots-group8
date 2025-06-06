@@ -1,4 +1,3 @@
-from google import genai
 import re
 import os
 import time
@@ -6,7 +5,7 @@ from openai import OpenAI
 
 # Load API key from a text file
 try:
-    with open("api_key.txt", "r") as f:
+    with open("LLM/api_key.txt", "r") as f: # filepath adjusted because we are running this code from a different folder. Ideally everyone renames to openai_api_key.txt and puts it in parent folder but its fine
         api_key = f.read().strip()
     os.environ['OPENAI_API_KEY'] = api_key
 except FileNotFoundError:
@@ -148,44 +147,16 @@ def LLM_report(report_details):
         not specific to a particular user's feed
         """
         
-        # Initiate userflow for LLM Recommendation 
-        recommendation_response = call_recommedation(report_details)
-        report_details['LLM_recommendation'] = recommendation_response
+    # Initiate userflow for LLM Recommendation 
+    recommendation_response = call_recommedation(report_details)
+    report_details['LLM_recommendation'] = recommendation_response
 
-    # TODO: exception for when LLM returns invalid format or empty response!
+    # TODO: exception for when LLM  returns invalid format or empty response!
 
     return report_details
 
 
-# this function does not allow the LLM to reject the classification, since at this point we are just emulating a user report.
-# later the LLM is given a chance to suggest to the moderator that the content is not harmful
-def call_report_type(report_details):
-    # Step 1: Initial classification - Misinformation or Other
-    print("====Step 1: Initial classification - Misinformation or Other===")
-    print(f"Message: {report_details['message_content']}")
-
-    system_instruction = f"""
-     You are a trust & safety expert content moderator for a social media platform who has been assigned to generate a user
-     report for a post that has been flagged by the platform's classifier.
-                         """
-
-    content = f""" 
-
-    Message Content : {report_details['message_content']},
-
-    Initial Classification from the Automated Post Classifier:
-    - Label : {report_details['classifier_label']},
-    - Confidence : {report_details['confidence_score']},
-
-    Validate the classifier's decision by selecting a category:
-    1. Misinformation
-    2. Other inappropriate or abusive content
-
-    Respond with ONLY the number (1-2).
-    """
-    
-    return call_gpt(system_instruction, content)
-
+# functions below except LLM_recommendation are emulating the user report
 
 def call_misinfo_type (report_details):
     # Step 2: Type of Misinformation
@@ -285,7 +256,7 @@ def call_recommedation(report_details):
 
     system_instruction = f"""
     You are a trust & safety expert content moderator for a social media platform. You have been assigned to assist a human moderator in making a decision
-    about reported content. Here is the information you have about the report:
+    about reported content. One rule you have is that if something is obviously untrue, that should not remain on the platform. Here is the information you have about the report:
                          """
     # TODO put in policy language above!
     
@@ -303,14 +274,42 @@ def call_recommedation(report_details):
     Based on the message content, potential harm label and confidence score, which of the following do you recommend :
         1. Allow Content, it is not harmful or inappropriate. It should be allowed to remain on the platform, and you (the LLM) believe that the classifier's decision is incorrect.
         2. Remove Content, it should not be allowed to remain on the platform
-        3. Escalate to a human moderator
 
-        Respond with ONLY one of these phrases: 'Allow Content', 'Remove Content', or 'Escalate to a human moderator' and in less than 80 words, 
+        Respond with ONLY one of these phrases: 'Allow Content', 'Remove Content', and in less than 80 words, 
         justify your recommendation. Adhere strictly to the word limit of 80. 
               """
 
     return call_gpt(system_instruction,content)
-# Recommendation based on filter, imminent harm, 
+
+# for when a report is missing a recommendation
+def call_recommendation_separate(report_details):
+    # Step 5: Recommendation
+    print("====Step 5: Recommendation===")
+
+    system_instruction = f"""
+    You are a trust & safety expert content moderator for a social media platform. You have been assigned to assist a human moderator in making a decision
+    about reported content. One rule you have is that if something is obviously untrue, that should not remain on the platform. Here is the information you have about the report:
+                         """
+    # TODO put in policy language above!
+    
+    content = f"""
+    Message Content: {report_details['message_content']}
+    Report Type: {report_details['report_type']}
+    Misinformation Type: {report_details['misinfo_type']}
+    Misinformation Subtype: {report_details['misinfo_subtype']}
+    Imminent Harm: {report_details['imminent']}
+
+
+
+    Based on the provided details, which of the following do you recommend :
+        1. Allow Content, it is not harmful or inappropriate. It should be allowed to remain on the platform, and you (the LLM) believe that the classifier's decision is incorrect.
+        2. Remove Content, it should not be allowed to remain on the platform
+
+        Respond with ONLY one of these phrases: 'Allow Content', 'Remove Content', and in less than 80 words, 
+        justify your recommendation. Adhere strictly to the word limit of 80. 
+              """
+
+    return call_gpt(system_instruction,content)
 
 
 

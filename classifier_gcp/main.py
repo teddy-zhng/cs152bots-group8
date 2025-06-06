@@ -82,7 +82,7 @@ def classify():
         outputs = model(**inputs)
         probs = torch.softmax(outputs.logits, dim=1).squeeze()
         # Lower the threshold for "misinfo" to prioritize recall
-        threshold = 0.5  # adjust this value as needed
+        threshold = 0.35  # adjust this value as needed
         if probs[1] >= threshold:
             prediction = 1
         else:
