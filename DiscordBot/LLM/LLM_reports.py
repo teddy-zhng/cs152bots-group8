@@ -134,7 +134,7 @@ def LLM_report(report_details):
     #================== Decision logic for Imminent Harm Response ==================
 
     if imminent_response == "1":
-        report_details['imminent'] = 'No'
+        report_details['imminent'] = "Non-imminent"
 
     elif imminent_response == "2":
         report_details['imminent'] = 'physical'

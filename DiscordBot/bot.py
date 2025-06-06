@@ -203,7 +203,8 @@ class ModBot(discord.Client):
                 report_info_msg += "User " + message.author.name + " reported user " + str(reported_author) + "'s message.\n"
                 # report_info_msg += "Here is the message: \n```" + str(reported_content) + "\n```" 
                 report_info_msg += "Category: " + str(report_type) + " > " + str(misinfo_type) + " > " + str(misinfo_subtype) + "\n"
-                if imminent:
+                if imminent not in ["Non-imminent", "No"]:
+                    print (imminent)
                     report_info_msg += "URGENT: Imminent " + imminent + " harm reported."
                 
                 # put the report on the queue itself
@@ -365,7 +366,8 @@ class ModBot(discord.Client):
             report_info_msg += "[Auto-Mod] reported user " + str(reported_author) + "'s message.\n"
             # report_info_msg += "Here is the message: \n```" + str(reported_content) + "\n```" 
             report_info_msg += "Category: " + str(report_type) + " > " + str(misinfo_type) + " > " + str(misinfo_subtype) + "\n"
-            if imminent:
+            if imminent not in ["Non-imminent", "No"]:
+                print(imminent)
                 report_info_msg += "URGENT: Imminent " + imminent + " harm reported."
             
             # put the report on the queue itself
