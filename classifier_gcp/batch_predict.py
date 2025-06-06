@@ -36,8 +36,8 @@ class SmallerBERTClassifier(BertPreTrainedModel):
 # Paths
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "saved_liar_bert_model")
 WEIGHTS_PATH = os.path.join(MODEL_DIR, "model.safetensors")
-TSV_PATH = "../../LIAR-PLUS-master/dataset/tsv/val2.tsv"
-OUTPUT_CSV = "val2_preds.csv"
+TSV_PATH = "../../LIAR-PLUS-master/dataset/tsv/test2.tsv"
+OUTPUT_CSV = "test2_preds.csv"
 
 # Load tokenizer and model
 tokenizer = BertTokenizer.from_pretrained(MODEL_DIR)
@@ -58,13 +58,13 @@ df = df.rename(columns={"col3": "statement", "col15": "justification"})
 predictions = []
 confidences = []
 misinfo_probs = []
-not_misinfo_probs = []
 
 for idx, row in tqdm(df.iterrows(), total=len(df)):
-    if idx >= 1500:
-        break
+    # if idx >= 1500:
+    #     break
     statement = row.get("statement", "")
-    justification = row.get("justification", "")
+    # justification = row.get("justification", "")
+    justification = ""
 
     # Ensure both are strings and handle NaN
     if not isinstance(statement, str):
@@ -86,7 +86,7 @@ for idx, row in tqdm(df.iterrows(), total=len(df)):
         outputs = model(**inputs)
         probs = torch.softmax(outputs.logits, dim=1).squeeze()
         # Lower the threshold for "misinfo" to prioritize recall
-        threshold = 0.5  # adjust this value as needed
+        threshold = 0.35  # adjust this value as needed
         if probs[1] >= threshold:
             prediction = 1
         else:
@@ -98,7 +98,7 @@ for idx, row in tqdm(df.iterrows(), total=len(df)):
     confidences.append(round(confidence, 4))
     misinfo_probs.append(round(misinfo_prob, 4))
 
-df = df.iloc[:1500].copy()
+# df = df.iloc[:1500].copy()
 
 df["prediction"] = predictions
 df["confidence_score"] = confidences
