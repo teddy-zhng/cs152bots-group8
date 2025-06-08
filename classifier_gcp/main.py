@@ -13,7 +13,6 @@ import numpy as np
 
 app = Flask(__name__)
 
-# Define model architecture
 class SmallerBERTClassifier(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
@@ -38,15 +37,12 @@ class SmallerBERTClassifier(BertPreTrainedModel):
             attentions=outputs.attentions
         )
 
-# ✅ Correct model directory name here
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "saved_liar_bert_model")
 
-# Load tokenizer and model from that directory
 tokenizer = BertTokenizer.from_pretrained(MODEL_DIR)
 config = BertConfig.from_pretrained(MODEL_DIR)
 model = SmallerBERTClassifier(config)
 
-# ✅ Load weights from Cloud Storage
 def load_weights_from_gcs(bucket_name, blob_name):
     client = storage.Client()
     bucket = client.bucket(bucket_name)
@@ -61,7 +57,6 @@ def load_weights_from_gcs(bucket_name, blob_name):
     model.load_state_dict(state_dict)
     print("✅ Model weights loaded from GCS")
 
-# 👇 Call this once, during init
 load_weights_from_gcs("pol-disinfo-classifier", "model.safetensors")
 model.eval()
 
@@ -70,19 +65,18 @@ def classify():
     data = request.json
 
     statement = data.get("message", "")
-    justification = data.get("justification", "")  # optional
+    justification = data.get("justification", "")  # this is optinoal
 
     if not statement.strip():
         return jsonify({"error": "The 'message' field (statement) is required."}), 400
 
-    # Tokenize input
     inputs = tokenizer(statement, justification, return_tensors="pt", truncation=True, padding=True, max_length=256)
 
     with torch.no_grad():
         outputs = model(**inputs)
         probs = torch.softmax(outputs.logits, dim=1).squeeze()
-        # Lower the threshold for "misinfo" to prioritize recall
-        threshold = 0.5  # adjust this value as needed
+        # we also tried other values like .35 for higher recall, but it was a ltitle too high, .5 gave us a good balance
+        threshold = 0.5  # <-- we can change this
         if probs[1] >= threshold:
             prediction = 1
         else:

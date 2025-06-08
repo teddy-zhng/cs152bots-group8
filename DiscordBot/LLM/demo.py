@@ -4,7 +4,6 @@ from datetime import datetime
 from LLM_reports import LLM_report
 
 
-# Test cases
 test_data_1 = {
     "message_content": "BREAKING: Scientists confirm that COVID vaccines contain microchips to track your movements. Share before this gets deleted!",
     "classifier_label": "potential_misinfo",
@@ -88,7 +87,6 @@ if __name__ == "__main__":
     print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     test_cases = [test_data_1, test_data_2, test_data_3, test_data_4, test_data_5, test_data_6]
 
-    # Generate report details for sample flagged posts
     for post in test_cases :
         report_details = LLM_report(post["message_content"],
                     post["classifier_label"],

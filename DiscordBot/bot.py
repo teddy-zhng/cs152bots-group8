@@ -15,14 +15,12 @@ import pdb
 from moderate import ModeratorReview
 from LLM import LLM_reports as llm
 
-# Set up logging to the console
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-# There should be a file called 'tokens.json' inside the same folder as this file
 token_path = 'tokens.json'
 if not os.path.isfile(token_path):
     raise Exception(f"{token_path} not found!")
@@ -160,6 +158,7 @@ class ModBot(discord.Client):
             for r in responses:
                 await message.channel.send(r)
 
+        # for future reference
         # if self.reports[author_id].harm_identified():
         #     reply = responses[0]
         #     harm = responses[1]
@@ -203,7 +202,7 @@ class ModBot(discord.Client):
                 report_info_msg += "User " + message.author.name + " reported user " + str(reported_author) + "'s message.\n"
                 # report_info_msg += "Here is the message: \n```" + str(reported_content) + "\n```" 
                 report_info_msg += "Category: " + str(report_type) + " > " + str(misinfo_type) + " > " + str(misinfo_subtype) + "\n"
-                if imminent not in ["Non-imminent", "No"]:
+                if imminent not in ["Non-imminent", "No", None]:
                     print (imminent)
                     report_info_msg += "URGENT: Imminent " + imminent + " harm reported."
                 
@@ -216,11 +215,6 @@ class ModBot(discord.Client):
             # remove
             self.reports.pop(author_id)
             self.conversationState = ConversationState.NOFLOW
-
-            # ------ starter code relevant to MILESTONE 3:  --------------
-            # scores = self.eval_text(message.content)
-            # await mod_channel.send(self.code_format(scores))
-            #-------------------------------------------------
     
     # DMs that were moderation requests
     async def handle_moderation(self, message):
@@ -318,7 +312,7 @@ class ModBot(discord.Client):
 
     # user channel messages: auto-review / flagging process
     async def auto_review(self, message):
-        # ----- teddy: for milestone 3, send every msg to classifier/llm -----------------------
+        # ----- teddy: for milestone 3, we send every msg to classifier/llm -----------------------
         mod_channel = self.mod_channels[message.guild.id]
         classification, confidence = await self.classify_msg(message, mod_channel)
         if classification == -1 or confidence == -1:
@@ -344,7 +338,6 @@ class ModBot(discord.Client):
             report_details = llm.LLM_report(report_details) # report function is in LLM/ module
             print("report details: ", report_details)
 
-            # TODO put into report queue
             # make a report
             id = self.report_id_counter
             self.report_id_counter += 1
@@ -366,7 +359,7 @@ class ModBot(discord.Client):
             report_info_msg += "[Auto-Mod] reported user " + str(reported_author) + "'s message.\n"
             # report_info_msg += "Here is the message: \n```" + str(reported_content) + "\n```" 
             report_info_msg += "Category: " + str(report_type) + " > " + str(misinfo_type) + " > " + str(misinfo_subtype) + "\n"
-            if imminent not in ["Non-imminent", "No"]:
+            if imminent not in ["Non-imminent", "No", None]:
                 print(imminent)
                 report_info_msg += "URGENT: Imminent " + imminent + " harm reported."
             
@@ -407,20 +400,6 @@ class ModBot(discord.Client):
             return -1, -1
 
     # LLM step of auto-review is an external function so we dont' have  afunction for it here
-
-    # don't remmeber what this commented out code was for, will delete barring any foreseeable use
-    # def process_response(self, responses):
-
-    #     reply = responses["reply"]
-    #     if not isinstance(reply, str): # just in case i forget brackets in report.py
-    #         reply = [reply]
-    #     del responses["reply"]
-
-    #     for key, value in responses.items(): # go through data (not including reply)
-    #         if key not in self.current_report: # don't allow overwriting
-    #             self.current_report[key] = value
-
-    #     return reply
 
 
 client = ModBot()

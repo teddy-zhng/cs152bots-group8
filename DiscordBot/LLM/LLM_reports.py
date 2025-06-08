@@ -3,7 +3,6 @@ import os
 import time
 from openai import OpenAI
 
-# Load API key from a text file
 try:
     with open("LLM/api_key.txt", "r") as f: # filepath adjusted because we are running this code from a different folder. Ideally everyone renames to openai_api_key.txt and puts it in parent folder but its fine
         api_key = f.read().strip()
@@ -37,7 +36,7 @@ def call_gpt(sys_instruction, content, retries=3, wait_time=60):
                 print("Max retries reached. Skipping this request.")
                 return None
 
-#  Function to invoke report generation
+#  entry point
 def LLM_report(report_details):
     """
     Populate report info as if from a user's perspective, and also make a recommendation for moderator.
@@ -65,7 +64,6 @@ def LLM_report(report_details):
         The updated report_details dictionary with all fields filled by the LLM logic.
     """
 
-    # outline fields for report_details
     report_details['report_type'] = None
     report_details['misinfo_type'] = None
     report_details['misinfo_subtype'] = None
@@ -73,7 +71,6 @@ def LLM_report(report_details):
     # we don't need to do filter since that is only for users who want to block the author
     report_details['LLM_recommendation'] = None
 
-    # Call to classify type of misinformation
     misinfo_type_response = call_misinfo_type(report_details)
     misinfo_type_response = misinfo_type_response[0]
 
