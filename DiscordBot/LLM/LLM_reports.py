@@ -1,3 +1,7 @@
+"""
+This file handles the logic for generating a report using an LLM.
+"""
+
 import re
 import os
 import time

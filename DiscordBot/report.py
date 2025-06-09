@@ -1,3 +1,6 @@
+"""
+This file implements the user reporting flow.
+"""
 from enum import Enum, auto
 import discord
 import re

@@ -1,3 +1,6 @@
+"""
+This file contains the main Discord bot implementation for handling user reports and moderation.
+"""
 # bot.py
 import discord
 from discord.ext import commands

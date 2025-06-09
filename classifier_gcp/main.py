@@ -1,3 +1,7 @@
+"""
+This file implements a simple Flask API that uses a BERT-based model 
+to classify statements as misinformation or not.
+"""
 from flask import Flask, request, jsonify
 from transformers import BertTokenizer, BertConfig
 from transformers.modeling_outputs import SequenceClassifierOutput
@@ -48,14 +52,14 @@ def load_weights_from_gcs(bucket_name, blob_name):
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
 
-    # 👇 Get raw bytes instead of using BytesIO
+    # Get raw bytes instead of using BytesIO
     weight_bytes = blob.download_as_bytes()
 
-    # ✅ Load weights directly from bytes
+    # Load weights directly from bytes
     state_dict = st.load(weight_bytes)
 
     model.load_state_dict(state_dict)
-    print("✅ Model weights loaded from GCS")
+    print("Model weights loaded from GCS")
 
 load_weights_from_gcs("pol-disinfo-classifier", "model.safetensors")
 model.eval()

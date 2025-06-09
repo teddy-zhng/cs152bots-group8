@@ -1,3 +1,6 @@
+"""
+This file implements the moderation flow.
+"""
 from enum import Enum, auto
 
 class ModState(Enum):

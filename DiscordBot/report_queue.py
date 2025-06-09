@@ -1,3 +1,7 @@
+"""
+This file implements a priority queue system for managing reports, and
+defines the SubmittedReport objects that are stored in the queue.
+"""
 from collections import deque
 
 class SubmittedReport:
