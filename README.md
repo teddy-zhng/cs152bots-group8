@@ -11,7 +11,7 @@ Poster: https://docs.google.com/presentation/d/1rOdz_VJr-9Pz5WO1cMxnH-9-WxY8MAFN
 # Usage:
 1. `cs152bots-group8/DiscordBot $ python3 bot.py`
 2. For users: DM `report` to the Group 8 mod bot:
-4. For moderators: DM `moderate` to the Group 8 mod bot. Moderators may `skip` if they 
+4. For moderators: DM `moderate` to the Group 8 mod bot. Moderators may `skip` a report for personal reasons.
 5. Type `report display` or `report summary` into `*-mod channel` to see overview or reports
 
 # Overview:
