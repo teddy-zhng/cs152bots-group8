@@ -17,5 +17,5 @@ Poster: https://docs.google.com/presentation/d/1rOdz_VJr-9Pz5WO1cMxnH-9-WxY8MAFN
 # Overview:
 Our bot funnels all messages through a classifier-LLM pipeline to automatically submit a report if needed. User reports go into the same queue, which is organized by how likely content is to cause imminent harm. Moderators, with LLM assistance, make decisions about each piece of content. 
 
-![our presentation poster]([https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png](https://github.com/teddy-zhng/cs152bots-group8/blob/main/CS%20152%20Group%208%20Poster.pptx.pdf) "Presentation Poster")
+![our presentation poster](https://github.com/teddy-zhng/cs152bots-group8/blob/main/CS%20152%20Group%208%20Poster.pptx.png "Presentation Poster")
 
